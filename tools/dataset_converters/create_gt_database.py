@@ -143,7 +143,7 @@ def create_groundtruth_database(dataset_class_name,
         with_mask (bool, optional): Whether to use mask.
             Default: False.
     """
-    print(f'Create GT Database of {dataset_class_name}')
+    print(f'Create GT2 Database of {dataset_class_name}')
     dataset_cfg = dict(
         type=dataset_class_name, data_root=data_path, ann_file=info_path)
     if dataset_class_name == 'KittiDataset':
@@ -210,6 +210,30 @@ def create_groundtruth_database(dataset_class_name,
                     coord_type='LIDAR',
                     load_dim=6,
                     use_dim=6,
+                    backend_args=backend_args),
+                dict(
+                    type='LoadAnnotations3D',
+                    with_bbox_3d=True,
+                    with_label_3d=True,
+                    backend_args=backend_args)
+            ])
+
+    elif dataset_class_name == 'HidDataset':
+        backend_args = None
+        dataset_cfg.update(
+            test_mode=False,
+            modality=dict(
+                use_lidar=True,
+                use_camera=False,
+            ),
+            data_prefix=dict(
+                pts='training/velodyne', img=''),
+            pipeline=[
+                dict(
+                    type='LoadPointsFromFile',
+                    coord_type='LIDAR',
+                    load_dim=4,
+                    use_dim=4,
                     backend_args=backend_args),
                 dict(
                     type='LoadAnnotations3D',
@@ -579,6 +603,29 @@ class GTDatabaseCreater:
                         coord_type='LIDAR',
                         load_dim=6,
                         use_dim=6,
+                        backend_args=backend_args),
+                    dict(
+                        type='LoadAnnotations3D',
+                        with_bbox_3d=True,
+                        with_label_3d=True,
+                        backend_args=backend_args)
+                ])
+        elif dataset_class_name == 'HidDataset':
+            backend_args = None
+            dataset_cfg.update(
+                test_mode=False,
+                modality=dict(
+                    use_lidar=True,
+                    use_camera=False,
+                ),
+                data_prefix=dict(
+                    pts='training/velodyne', img=''),
+                pipeline=[
+                    dict(
+                        type='LoadPointsFromFile',
+                        coord_type='LIDAR',
+                        load_dim=4,
+                        use_dim=4,
                         backend_args=backend_args),
                     dict(
                         type='LoadAnnotations3D',

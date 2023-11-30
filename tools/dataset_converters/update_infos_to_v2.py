@@ -528,7 +528,83 @@ def update_kitti_infos(pkl_path, out_dir):
 
     mmengine.dump(converted_data_info, out_path, 'pkl')
 
+def update_hid_infos(pkl_path, out_dir):
+    print(f'{pkl_path} will be modified.')
+    if out_dir in pkl_path:
+        print(f'Warning, you may overwriting '
+              f'the original data {pkl_path}.')
+        time.sleep(5)
+    # TODO update to full label
+    # TODO discuss how to process 'Van', 'DontCare'
+    METAINFO = {
+        'classes': ('expose'),
+    }
+    print(f'Reading from input file: {pkl_path}.')
+    data_list = mmengine.load(pkl_path)
+    print('Start updating:')
+    converted_list = []
+    for ori_info_dict in mmengine.track_iter_progress(data_list):
+        temp_data_info = get_empty_standard_data_info()
 
+        if 'plane' in ori_info_dict:
+            temp_data_info['plane'] = ori_info_dict['plane']
+
+        temp_data_info['lidar_points']['num_pts_feats'] = ori_info_dict[
+            'point_cloud']['num_features']
+        temp_data_info['lidar_points']['lidar_path'] = Path(
+            ori_info_dict['point_cloud']['velodyne_path']).name
+
+        # for potential usage
+        anns = ori_info_dict.get('annos', None)
+        ignore_class_name = set()
+        if anns is not None:
+            num_instances = len(anns['name'])
+            instance_list = []
+            for instance_id in range(num_instances):
+                empty_instance = get_empty_instance()
+
+
+                if anns['name'][instance_id] in METAINFO['classes']:
+                    empty_instance['bbox_label'] = METAINFO['classes'].index(
+                        anns['name'][instance_id])
+                else:
+                    ignore_class_name.add(anns['name'][instance_id])
+                    empty_instance['bbox_label'] = -1
+
+
+
+                loc = anns['location'][instance_id]
+                dims = anns['dimensions'][instance_id]
+                rots = anns['rotation_y'][:, None][instance_id]
+
+
+                gt_bboxes_3d = np.concatenate([loc, dims, rots]).tolist()
+                empty_instance['bbox_3d'] = gt_bboxes_3d
+                empty_instance['bbox_label_3d'] = copy.deepcopy(
+                    empty_instance['bbox_label'])
+
+                empty_instance = clear_instance_unused_keys(empty_instance)
+                instance_list.append(empty_instance)
+            temp_data_info['instances'] = instance_list
+
+        temp_data_info, _ = clear_data_info_unused_keys(temp_data_info)
+        converted_list.append(temp_data_info)
+    pkl_name = Path(pkl_path).name
+    out_path = osp.join(out_dir, pkl_name)
+    print(f'Writing to output file: {out_path}.')
+    print(f'ignore classes: {ignore_class_name}')
+
+    # dataset metainfo
+    metainfo = dict()
+    metainfo['categories'] = {k: i for i, k in enumerate(METAINFO['classes'])}
+    if ignore_class_name:
+        for ignore_class in ignore_class_name:
+            metainfo['categories'][ignore_class] = -1
+    metainfo['dataset'] = 'hid'
+    metainfo['info_version'] = '1.1'
+    converted_data_info = dict(metainfo=metainfo, data_list=converted_list)
+
+    mmengine.dump(converted_data_info, out_path, 'pkl')
 def update_s3dis_infos(pkl_path, out_dir):
     print(f'{pkl_path} will be modified.')
     if out_dir in pkl_path:
@@ -1136,6 +1212,8 @@ def parse_args():
 def update_pkl_infos(dataset, out_dir, pkl_path):
     if dataset.lower() == 'kitti':
         update_kitti_infos(pkl_path=pkl_path, out_dir=out_dir)
+    elif dataset.lower() == 'hid':
+        update_hid_infos(pkl_path=pkl_path, out_dir=out_dir)
     elif dataset.lower() == 'waymo':
         update_waymo_infos(pkl_path=pkl_path, out_dir=out_dir)
     elif dataset.lower() == 'scannet':
