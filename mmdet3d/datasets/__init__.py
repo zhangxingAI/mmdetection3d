@@ -37,5 +37,5 @@ __all__ = [
     'LoadPointsFromMultiSweeps', 'WaymoDataset', 'BackgroundPointsFilter',
     'VoxelBasedPointSampler', 'get_loading_pipeline', 'RandomDropPointsColor',
     'RandomJitterPoints', 'ObjectNameFilter', 'AffineResize',
-    'RandomShiftScale', 'LoadPointsFromDict', 'Resize3D', 'RandomResize3D','HidDataset'
-]
+    'RandomShiftScale', 'LoadPointsFromDict', 'Resize3D', 'RandomResize3D'
+ ]
